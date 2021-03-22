@@ -14,7 +14,6 @@ from GUI import gui
 def generate_id():
     return str(uuid.uuid4().fields[-1])[:5]
 
-
 def search_for_matches(face_descriptor):
     """
     Ищет совпадения лиц в базе данных по вектору.
