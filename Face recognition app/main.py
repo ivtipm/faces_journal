@@ -1,15 +1,25 @@
+import os
 import sys  # sys нужен для передачи argv в QApplication
+
 import cv2
 import imutils
+import transliterate
+import datetime
 
 from PyQt5 import QtWidgets
-from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QPixmap
+from PyQt5.QtCore import Qt, QTimer
+from PyQt5.QtGui import QPixmap, QImage
 from PyQt5.QtWidgets import QFileDialog
 
 from GUI import gui
 import face_recognition_module as FR
 import database_module as db
+
+
+def add_to_unknown(path_without_border, face):
+    frame_without_borders = cv2.imread(path_without_border)
+    cropped = frame_without_borders[face.top() - 30:face.bottom() + 30, face.left() - 30:face.right() + 30]
+    cv2.imwrite('unknown faces/unknown' + str(len(os.listdir('./unknown faces')) + 1) + '.png', cropped)
 
 
 class FaceApp(QtWidgets.QMainWindow, gui.Ui_MainWindow):
@@ -23,6 +33,15 @@ class FaceApp(QtWidgets.QMainWindow, gui.Ui_MainWindow):
         self.reset_left_area()
         self.reset_right_area()
         self.label.setStyleSheet('color: rgb(229, 61, 26)')
+        self.fps = 30
+        self.timer = QTimer()
+        self.timer_save_history = QTimer()
+        self.timer_save_history.timeout.connect(self.save_history_success)
+        self.flag = False
+        self.btnCloseCam.setVisible(False)
+        self.btnTakeScreenshot.setEnabled(False)
+        self.labelSaveHistorySuccess.setVisible(False)
+        self.label.setAlignment(Qt.AlignCenter)
 
         # Открытие изображения для верификации лица
         self.btnOpenImg.clicked.connect(self.open_img)
@@ -36,8 +55,16 @@ class FaceApp(QtWidgets.QMainWindow, gui.Ui_MainWindow):
         # Открытие веб-камеры для верификации лица
         self.btnOpenCam.clicked.connect(self.open_cam)
 
-        global loading_image
-        loading_image = 0
+        # Закрытие веб-камеры
+        self.btnCloseCam.clicked.connect(self.close_cam)
+
+        # "Заморозить" изображение
+        self.btnTakeScreenshot.clicked.connect(self.take_screenshot)
+
+        # Сохранить историю посещений в файл
+        self.btnSaveHistory.clicked.connect(self.save_history)
+
+        self.loading_image = 0
 
     def reset_left_area(self):
         self.label.clear()
@@ -49,47 +76,76 @@ class FaceApp(QtWidgets.QMainWindow, gui.Ui_MainWindow):
         self.labelInfo.setText('')
         self.textEditName.setText('')
 
+    def set_fps(self, fps):
+        self.fps = fps
+
+    def close_cam(self):
+        self.timer.stop()
+
     def open_cam(self):
         """Открытие камеры для "заморозки" изображения"""
+        self.btnOpenCam.setVisible(False)
+        self.btnCloseCam.setVisible(True)
+        self.btnTakeScreenshot.setEnabled(True)
+        self.cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)  # video capture source camera (Here webcam of laptop)
         self.reset_left_area()
-        cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)  # video capture source camera (Here webcam of laptop)
-        if cap is None or not cap.isOpened():
+        if self.cap is None or not self.cap.isOpened():
             self.label.setText('Веб-камера не обнаружена!')
             return
-        color_yellow = (0, 255, 255)
-        while True:
-            (grabbed, frame) = cap.read()
-            frame = imutils.resize(frame, width=400)
-            cv2.putText(frame, """Press Enter to take a screenshot""",
-                        (10, 10), cv2.FONT_HERSHEY_TRIPLEX, 0.5, color_yellow, 1)
-            cv2.imshow('Веб-камера', frame)
-            # Чтобы "заморозить" изображение нужно нажать на Enter
-            if cv2.waitKey(1) & 0xFF == 13:
-                path = 'capture.png'
-                buf = cv2.imread(path)  # копируем в буфер старое изображение
-                cv2.imwrite(path, frame)
-                cv2.destroyAllWindows()
-                break
+        self.timer.timeout.connect(self.next_frame_slot)
+        self.timer.start(1000. / self.fps)
 
-            # frame[0,:,:], frame[2,:,:] = frame[2,:,:], frame[0,:,:]
-            # Убрать подвисание через таймер
-            # Сделать рисование рамки в реальном времени на лице, чуть ниже писать имя человека
-            # Сделать log во время выполнения программы (история узнавания)
-            # План презентации в Slack
-        cap.release()
+    def close_cam(self):
+        self.timer.stop()
+        self.cap.release()
+        self.btnOpenCam.setVisible(True)
+        self.btnCloseCam.setVisible(False)
+        self.btnTakeScreenshot.setEnabled(False)
+        self.reset_left_area()
 
-        # Если человека нет в БД, то предложим ему добавить себя
-        if self.check_user(path) == 0:
-            # Функции QPixmap.scaled() возвращают масштабированные копии pixmap
-            pixmap = QPixmap(path).scaled(221, 161,
-                                          Qt.KeepAspectRatio,
-                                          Qt.SmoothTransformation)
-            # Помещаем картинку в label для отображения на экране
-            self.labelResult.setPixmap(pixmap)
-            global loading_image
-            loading_image = path
+    def next_frame_slot(self):
+        ret, frame = self.cap.read()
+        # Рисуем на фрейме прямугольники в местах, где обаружены лица
+        face_rects = FR.obj_FR.return_faces(frame)
+        path_without_border = 'screenshots/buffer.png'
+        # p1 = threading.Thread(target=self.check_user, args=(path_without_border,))
+        # if not p1.is_alive():
+        # p1.start()
+        cv2.imwrite(path_without_border, frame)
+        for face in face_rects:
+            frame = cv2.rectangle(frame, (face.left(), face.top()),
+                                  (face.right(), face.bottom()), (0, 200, 0), 2)
+        path = 'screenshots/capture.png'
+        cv2.imwrite(path, frame)
+        # p1.join()
+        self.check_user(path_without_border)
+
+        frame = imutils.resize(frame, width=480)
+        if self.flag:
+            cv2.imwrite(path, frame)
+            self.take_screenshot()
+            # Если человека нет в БД, то предложим ему добавить себя
+            if self.check_user(path) == 0:
+                # Функции QPixmap.scaled() возвращают масштабированные копии pixmap
+                pixmap = QPixmap(path).scaled(491, 351,
+                                              Qt.KeepAspectRatio,
+                                              Qt.SmoothTransformation)
+                # Помещаем картинку в label для отображения на экране
+                self.labelResult.setPixmap(pixmap)
+                self.loading_image = path
+                self.close_cam()
+            else:
+                return
+        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        img = QImage(frame, frame.shape[1], frame.shape[0], QImage.Format_RGB888)
+        pix = QPixmap.fromImage(img)
+        self.label.setPixmap(pix)
+
+    def take_screenshot(self):
+        if not self.flag:
+            self.flag = True
         else:
-            cv2.imwrite(path, buf)
+            self.flag = False
 
     def open_img(self):
         """Открытие изображения с компьютера"""
@@ -99,52 +155,114 @@ class FaceApp(QtWidgets.QMainWindow, gui.Ui_MainWindow):
 
     def check_user(self, path):
         """Проверка на наличие человека в БД"""
+        self.progressBar.setValue(0)
+        # Задаем настройки текста
+        font = cv2.FONT_HERSHEY_SIMPLEX
+        fontScale = 1
+        fontColor = (0, 200, 0)
+        lineType = 2
         if path:
-            # Функции QPixmap.scaled() возвращают масштабированные копии pixmap
-            pixmap = QPixmap(path).scaled(291, 171,
-                                          Qt.KeepAspectRatio,
-                                          Qt.SmoothTransformation)
-
+            # задаем путь к изображению
             FR.obj_FR.set_path(path)
+            # получаем массив дескрипторов лиц
             fd_array = FR.obj_FR.return_img_vector()
             if not fd_array:
-                self.label.setText('На изображении нет человека!')
+                self.label.setText('На изображении нет людей!')
                 return
+            count = 0
+            isFound = False
+            self.progressBar.setMaximum(len(fd_array))
+            frame = cv2.imread(path)
+            path_without_border = 'screenshots/buffer.png'
+            cv2.imwrite(path_without_border, frame)
+            # Рисуем на фрейме прямугольники в местах, где обаружены лица
+            for face in FR.obj_FR.face_rects:
+                frame = cv2.rectangle(frame, (face.left(), face.top()),
+                                      (face.right(), face.bottom()), (0, 200, 0), 2)
             for face_descriptor in fd_array:
                 name, value = FR.search_for_matches(face_descriptor)
                 if name != '':
+                    isFound = True  # распознан хотя бы один человек
+                    trans_name = transliterate.translit(name, reversed=True)
+                    bottomLeftCornerOfText = (FR.obj_FR.face_rects[count].left(),
+                                              FR.obj_FR.face_rects[count].bottom() + 30)
+                    frame = cv2.putText(frame, trans_name, bottomLeftCornerOfText, font, fontScale, fontColor, lineType)
+                    cv2.imwrite('screenshots/cv2write.png', frame)
+                    # Функции QPixmap.scaled() возвращают масштабированные копии pixmap
+                    pixmap = QPixmap('screenshots/cv2write.png').scaled(491, 351,
+                                                                        Qt.KeepAspectRatio,
+                                                                        Qt.SmoothTransformation)
                     # Помещаем картинку в label для отображения на экране
                     self.label.setPixmap(pixmap)
-                    self.labelName.setText(name)
-                    self.labelEuclid.setText(str(value))
+                    self.set_info_about_user(name, value)
+                    self.add_to_history(name)
+                else:
+                    # Добавляем изображения нераспознанных людей в папку на диске
+                    add_to_unknown(path_without_border, FR.obj_FR.face_rects[count])
+                count += 1
+                self.progressBar.setValue(count)
+                if count == len(fd_array) and isFound:
                     return
-            self.label.setText('Такого человека нет в базе!')
+            self.label.setText('Совпадений не обнаружено!')
             return 0
+
+    def save_history_success(self):
+        self.timer_save_history.stop()
+        self.labelSaveHistorySuccess.setVisible(False)
+        self.btnSaveHistory.setVisible(True)
+
+    def save_history(self):
+        self.timer_save_history.start(3000)
+        self.labelSaveHistorySuccess.setVisible(True)
+        self.btnSaveHistory.setVisible(False)
+        now = datetime.datetime.now()
+        f = open('history/' + now.strftime("%d-%m-%Y %H-%M") + '.txt', 'w')
+        f.write(self.plainTextEdit.toPlainText())
+        f.close()
+
+    def set_info_about_user(self, name, value):
+        if self.labelName.text().find(name) == -1:
+            if name != '' and self.labelName.text() == '':
+                self.labelName.setText(self.labelName.text() + name)
+            else:
+                self.labelName.setText(self.labelName.text() + ' & ' + name)
+
+            if str(value) != '' and self.labelEuclid.text() == '':
+                self.labelEuclid.setText(self.labelEuclid.text() + str(value))
+            else:
+                self.labelEuclid.setText(self.labelEuclid.text() + ' & ' + str(value))
+
+    def add_to_history(self, name):
+        strings = self.plainTextEdit.toPlainText().split('\n')
+        now = datetime.datetime.now()
+        if strings[0] == '':
+            self.plainTextEdit.insertPlainText('[' + now.strftime("%H:%M") + ']: ' + name + '\n')
+        else:
+            if strings[-2].find(name) == -1:
+                self.plainTextEdit.insertPlainText('[' + now.strftime("%H:%M") + ']: ' + name + '\n')
 
     def load_img(self):
         """Открытие изображения для загрузки в БД"""
         self.reset_right_area()
         self.labelInfo.setStyleSheet('color: rgb(229, 61, 26)')
-        global loading_image
-        loading_image = QFileDialog.getOpenFileName(self, 'Выбор картинки', '/home', "Image (*.png *.jpg)")[0]
+        self.loading_image = QFileDialog.getOpenFileName(self, 'Выбор картинки', '/home', "Image (*.png *.jpg)")[0]
         # Функции QPixmap.scaled() возвращают масштабированные копии pixmap
-        pixmap = QPixmap(loading_image).scaled(221, 161,
-                                               Qt.KeepAspectRatio,
-                                               Qt.SmoothTransformation)
+        pixmap = QPixmap(self.loading_image).scaled(221, 161,
+                                                    Qt.KeepAspectRatio,
+                                                    Qt.SmoothTransformation)
         # Помещаем картинку в label для отображения на экране
         self.labelResult.setPixmap(pixmap)
 
     def save_vector(self):
         """Сохранение вектора лица в БД по заданному изображению"""
         self.labelInfo.setStyleSheet('color: rgb(229, 61, 26)')
-        global loading_image
-        if not loading_image:
+        if not self.loading_image:
             self.labelInfo.setText('Загрузите изображение!')
             return
         elif self.textEditName.toPlainText() == '':
             self.labelInfo.setText('Введите свое имя!')
             return
-        FR.obj_FR.set_path(loading_image)
+        FR.obj_FR.set_path(self.loading_image)
 
         # Проверка, есть ли человек уже в БД
         fd_array = FR.obj_FR.return_img_vector()
@@ -162,7 +280,7 @@ class FaceApp(QtWidgets.QMainWindow, gui.Ui_MainWindow):
                 self.reset_right_area()
                 self.labelInfo.setStyleSheet('color: rgb(32, 200, 15)')
                 self.labelInfo.setText('Загружено успешно!')
-                loading_image = 0
+                self.loading_image = 0
 
 
 def main():
