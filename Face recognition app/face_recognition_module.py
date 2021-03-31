@@ -20,7 +20,7 @@ def search_for_matches(face_descriptor1):
         for rec in records:
             face_descriptor2 = tuple(float(item) for item in rec[1].split(' '))
             value = calc_euclid(face_descriptor1, face_descriptor2)
-            if value < 0.6 and abs(0.6 - value) >= 0.01:
+            if value < 0.6 and abs(0.6 - value) >= 0.035:
                 values.append(value)
                 names.append(rec[0])
         if not values:

@@ -6,13 +6,13 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1360</width>
+    <width>849</width>
     <height>634</height>
    </rect>
   </property>
   <property name="minimumSize">
    <size>
-    <width>1360</width>
+    <width>849</width>
     <height>634</height>
    </size>
   </property>
@@ -282,7 +282,7 @@
      <rect>
       <x>0</x>
       <y>0</y>
-      <width>1361</width>
+      <width>851</width>
       <height>16</height>
      </rect>
     </property>
@@ -302,6 +302,9 @@
       <height>511</height>
      </rect>
     </property>
+    <property name="acceptDrops">
+     <bool>false</bool>
+    </property>
     <property name="sizeAdjustPolicy">
      <enum>QAbstractScrollArea::AdjustToContentsOnFirstShow</enum>
     </property>
@@ -309,7 +312,8 @@
      <bool>true</bool>
     </property>
     <property name="plainText">
-     <string/>
+     <string>Все нераспознанные лица хранятся в папке unknown faces!
+</string>
     </property>
    </widget>
    <widget class="QLabel" name="labelHistory">
@@ -338,8 +342,8 @@
     </property>
     <property name="geometry">
      <rect>
-      <x>260</x>
-      <y>70</y>
+      <x>30</x>
+      <y>40</y>
       <width>20</width>
       <height>20</height>
      </rect>
@@ -358,8 +362,8 @@
     </property>
     <property name="geometry">
      <rect>
-      <x>260</x>
-      <y>70</y>
+      <x>30</x>
+      <y>40</y>
       <width>20</width>
       <height>21</height>
      </rect>
@@ -381,13 +385,91 @@
      <bool>true</bool>
     </property>
    </widget>
+   <widget class="QPushButton" name="btnDeleteHistory">
+    <property name="enabled">
+     <bool>true</bool>
+    </property>
+    <property name="geometry">
+     <rect>
+      <x>10</x>
+      <y>40</y>
+      <width>20</width>
+      <height>20</height>
+     </rect>
+    </property>
+    <property name="icon">
+     <iconset>
+      <normaloff>img/delete.png</normaloff>img/delete.png</iconset>
+    </property>
+    <property name="iconSize">
+     <size>
+      <width>16</width>
+      <height>16</height>
+     </size>
+    </property>
+    <property name="flat">
+     <bool>true</bool>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="btnShowMore">
+    <property name="enabled">
+     <bool>true</bool>
+    </property>
+    <property name="geometry">
+     <rect>
+      <x>800</x>
+      <y>280</y>
+      <width>31</width>
+      <height>31</height>
+     </rect>
+    </property>
+    <property name="icon">
+     <iconset>
+      <normaloff>img/arrow.png</normaloff>img/arrow.png</iconset>
+    </property>
+    <property name="iconSize">
+     <size>
+      <width>24</width>
+      <height>24</height>
+     </size>
+    </property>
+    <property name="flat">
+     <bool>true</bool>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="btnShowSmall">
+    <property name="enabled">
+     <bool>true</bool>
+    </property>
+    <property name="geometry">
+     <rect>
+      <x>800</x>
+      <y>280</y>
+      <width>31</width>
+      <height>31</height>
+     </rect>
+    </property>
+    <property name="icon">
+     <iconset>
+      <normaloff>img/arrowleft.png</normaloff>img/arrowleft.png</iconset>
+    </property>
+    <property name="iconSize">
+     <size>
+      <width>24</width>
+      <height>24</height>
+     </size>
+    </property>
+    <property name="flat">
+     <bool>true</bool>
+    </property>
+   </widget>
   </widget>
   <widget class="QMenuBar" name="menubar">
    <property name="geometry">
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1360</width>
+     <width>849</width>
      <height>21</height>
     </rect>
    </property>

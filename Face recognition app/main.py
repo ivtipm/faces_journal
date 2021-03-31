@@ -7,13 +7,15 @@ import transliterate
 import datetime
 
 from PyQt5 import QtWidgets
-from PyQt5.QtCore import Qt, QTimer
-from PyQt5.QtGui import QPixmap, QImage
-from PyQt5.QtWidgets import QFileDialog
+from PyQt5.QtCore import Qt, QTimer, QLocale, QTranslator
+from PyQt5.QtGui import QPixmap, QImage, QTextCursor
+from PyQt5.QtWidgets import QFileDialog, QMessageBox
 
 from GUI import gui
 import face_recognition_module as FR
 import database_module as db
+
+I18N_QT_PATH = '/usr/share/qt/translations/'
 
 
 def add_to_unknown(path_without_border, face):
@@ -33,7 +35,7 @@ class FaceApp(QtWidgets.QMainWindow, gui.Ui_MainWindow):
         self.reset_left_area()
         self.reset_right_area()
         self.label.setStyleSheet('color: rgb(229, 61, 26)')
-        self.fps = 30
+        self.fps = 24
         self.timer = QTimer()
         self.timer_save_history = QTimer()
         self.timer_save_history.timeout.connect(self.save_history_success)
@@ -42,6 +44,7 @@ class FaceApp(QtWidgets.QMainWindow, gui.Ui_MainWindow):
         self.btnTakeScreenshot.setEnabled(False)
         self.labelSaveHistorySuccess.setVisible(False)
         self.label.setAlignment(Qt.AlignCenter)
+        self.btnShowSmall.setVisible(False)
 
         # Открытие изображения для верификации лица
         self.btnOpenImg.clicked.connect(self.open_img)
@@ -64,6 +67,15 @@ class FaceApp(QtWidgets.QMainWindow, gui.Ui_MainWindow):
         # Сохранить историю посещений в файл
         self.btnSaveHistory.clicked.connect(self.save_history)
 
+        # Очистить историю посещений
+        self.btnDeleteHistory.clicked.connect(self.delete_history)
+
+        # Открывает область регистрации лица
+        self.btnShowMore.clicked.connect(self.show_more)
+
+        # Закрывает область регистрации лица
+        self.btnShowSmall.clicked.connect(self.show_small)
+
         self.loading_image = 0
 
     def reset_left_area(self):
@@ -78,9 +90,6 @@ class FaceApp(QtWidgets.QMainWindow, gui.Ui_MainWindow):
 
     def set_fps(self, fps):
         self.fps = fps
-
-    def close_cam(self):
-        self.timer.stop()
 
     def open_cam(self):
         """Открытие камеры для "заморозки" изображения"""
@@ -147,10 +156,28 @@ class FaceApp(QtWidgets.QMainWindow, gui.Ui_MainWindow):
         else:
             self.flag = False
 
+    def show_more(self):
+        self.setMinimumWidth(1360)
+        self.setMaximumWidth(1360)
+        self.setFixedWidth(1360)
+        self.btnShowMore.setVisible(False)
+        self.btnShowSmall.setVisible(True)
+        self.progressBar.setFixedWidth(1360)
+
+    def show_small(self):
+        self.setMinimumWidth(849)
+        self.setMaximumWidth(849)
+        self.setFixedWidth(849)
+        self.btnShowSmall.setVisible(False)
+        self.btnShowMore.setVisible(True)
+        self.progressBar.setFixedWidth(849)
+
     def open_img(self):
         """Открытие изображения с компьютера"""
         self.reset_left_area()
         path = QFileDialog.getOpenFileName(self, 'Выбор картинки', '/home', "Image (*.png *.jpg *.jpeg)")[0]
+        if path != '':
+            self.label.setText('Подождите, идёт распознавание...')
         self.check_user(path)
 
     def check_user(self, path):
@@ -220,6 +247,13 @@ class FaceApp(QtWidgets.QMainWindow, gui.Ui_MainWindow):
         f.write(self.plainTextEdit.toPlainText())
         f.close()
 
+    def delete_history(self):
+        answer = QMessageBox.question(
+            self, 'Очистка истории', 'Вы уверены, что хотите очистить историю?',
+            QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+        if answer == QMessageBox.Yes:
+            self.plainTextEdit.setPlainText('Все нераспознанные лица хранятся в папке unknown faces!\n')
+
     def set_info_about_user(self, name, value):
         if self.labelName.text().find(name) == -1:
             if name != '' and self.labelName.text() == '':
@@ -233,9 +267,11 @@ class FaceApp(QtWidgets.QMainWindow, gui.Ui_MainWindow):
                 self.labelEuclid.setText(self.labelEuclid.text() + ' & ' + str(value))
 
     def add_to_history(self, name):
+        self.plainTextEdit.moveCursor(QTextCursor.End)
         strings = self.plainTextEdit.toPlainText().split('\n')
         now = datetime.datetime.now()
-        if strings[0] == '':
+        if strings[1] == '':
+            self.plainTextEdit.moveCursor(QTextCursor.End)
             self.plainTextEdit.insertPlainText('[' + now.strftime("%H:%M") + ']: ' + name + '\n')
         else:
             if strings[-2].find(name) == -1:
@@ -285,6 +321,10 @@ class FaceApp(QtWidgets.QMainWindow, gui.Ui_MainWindow):
 
 def main():
     app = QtWidgets.QApplication(sys.argv)  # Новый экземпляр QApplication
+    locale = QLocale.system().name()
+    translator = QTranslator(app)
+    translator.load('{}qtbase_{}.qm'.format(I18N_QT_PATH, locale))
+    app.installTranslator(translator)
     window = FaceApp()  # Создаём объект класса FaceApp
     window.show()  # Показываем окно
     app.exec_()  # и запускаем приложение
