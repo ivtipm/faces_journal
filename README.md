@@ -11,5 +11,10 @@
 - [ ] кнопку "сохранить картинку с веб камеры в файл"
 - [ ] + функция добавления замороенного изображения в БД
 
+
+# Help
+HOG + SVM based face detector.  Относительно простей детектор без нейросетей 
+`dlib.get_frontal_face_detector()`
+
 # Ссылки
 https://tproger.ru/translations/python-gui-pyqt/ -- создание интерфейса для python программы на фреимворке Qt
