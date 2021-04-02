@@ -96,10 +96,14 @@ class FaceApp(QtWidgets.QMainWindow, gui.Ui_MainWindow):
         self.btnOpenCam.setVisible(False)
         self.btnCloseCam.setVisible(True)
         self.btnTakeScreenshot.setEnabled(True)
+
         self.cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)  # video capture source camera (Here webcam of laptop)
+        # Моя камера открывается только так:
+        # self.cap = cv2.VideoCapture(0)
         self.reset_left_area()
         if self.cap is None or not self.cap.isOpened():
             self.label.setText('Веб-камера не обнаружена!')
+
             return
         self.timer.timeout.connect(self.next_frame_slot)
         self.timer.start(1000. / self.fps)
