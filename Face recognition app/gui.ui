@@ -81,12 +81,12 @@
      <string/>
     </property>
    </widget>
-   <widget class="QLabel" name="labelName">
+   <widget class="QLabel" name="labelOutput">
     <property name="geometry">
      <rect>
       <x>300</x>
       <y>30</y>
-      <width>1051</width>
+      <width>551</width>
       <height>31</height>
      </rect>
     </property>
@@ -98,7 +98,7 @@
      </font>
     </property>
     <property name="text">
-     <string>Имя Фамилия</string>
+     <string>Вывод:</string>
     </property>
    </widget>
    <widget class="QTextEdit" name="textEditName">
@@ -208,7 +208,7 @@
      <string>Загружено успешно!</string>
     </property>
    </widget>
-   <widget class="QLabel" name="labelEuclid">
+   <widget class="QLabel" name="labelStatus">
     <property name="geometry">
      <rect>
       <x>300</x>
@@ -226,7 +226,7 @@
      </font>
     </property>
     <property name="text">
-     <string>Евклидово расстояние</string>
+     <string>Статус...</string>
     </property>
    </widget>
    <widget class="QPushButton" name="btnOpenCam">
@@ -342,7 +342,7 @@
     </property>
     <property name="geometry">
      <rect>
-      <x>30</x>
+      <x>10</x>
       <y>40</y>
       <width>20</width>
       <height>20</height>
@@ -362,7 +362,7 @@
     </property>
     <property name="geometry">
      <rect>
-      <x>30</x>
+      <x>10</x>
       <y>40</y>
       <width>20</width>
       <height>21</height>
@@ -392,7 +392,7 @@
     <property name="geometry">
      <rect>
       <x>10</x>
-      <y>40</y>
+      <y>580</y>
       <width>20</width>
       <height>20</height>
      </rect>
@@ -461,6 +461,26 @@
     </property>
     <property name="flat">
      <bool>true</bool>
+    </property>
+   </widget>
+   <widget class="QLabel" name="labelAddNewFace">
+    <property name="geometry">
+     <rect>
+      <x>860</x>
+      <y>30</y>
+      <width>491</width>
+      <height>31</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <pointsize>16</pointsize>
+      <weight>50</weight>
+      <bold>false</bold>
+     </font>
+    </property>
+    <property name="text">
+     <string>Загрузка:</string>
     </property>
    </widget>
   </widget>

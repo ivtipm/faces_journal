@@ -45,6 +45,9 @@ class FaceApp(QtWidgets.QMainWindow, gui.Ui_MainWindow):
         self.labelSaveHistorySuccess.setVisible(False)
         self.label.setAlignment(Qt.AlignCenter)
         self.btnShowSmall.setVisible(False)
+        self.labelOutput.setVisible(True)
+        self.labelStatus.setVisible(True)
+        self.labelAddNewFace.setVisible(True)
 
         # Открытие изображения для верификации лица
         self.btnOpenImg.clicked.connect(self.open_img)
@@ -80,8 +83,8 @@ class FaceApp(QtWidgets.QMainWindow, gui.Ui_MainWindow):
 
     def reset_left_area(self):
         self.label.clear()
-        self.labelName.setText('')
-        self.labelEuclid.setText('')
+        self.labelOutput.setText('Вывод:')
+        self.labelStatus.setText('')
 
     def reset_right_area(self):
         self.labelResult.clear()
@@ -99,7 +102,7 @@ class FaceApp(QtWidgets.QMainWindow, gui.Ui_MainWindow):
         self.cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)  # video capture source camera (Here webcam of laptop)
         self.reset_left_area()
         if self.cap is None or not self.cap.isOpened():
-            self.label.setText('Веб-камера не обнаружена!')
+            self.labelStatus.setText('Веб-камера не обнаружена!')
             return
         self.timer.timeout.connect(self.next_frame_slot)
         self.timer.start(1000. / self.fps)
@@ -177,7 +180,7 @@ class FaceApp(QtWidgets.QMainWindow, gui.Ui_MainWindow):
         self.reset_left_area()
         path = QFileDialog.getOpenFileName(self, 'Выбор картинки', '/home', "Image (*.png *.jpg *.jpeg)")[0]
         if path != '':
-            self.label.setText('Подождите, идёт распознавание...')
+            self.labelStatus.setText('Подождите, идёт распознавание...')
         self.check_user(path)
 
     def check_user(self, path):
@@ -193,8 +196,9 @@ class FaceApp(QtWidgets.QMainWindow, gui.Ui_MainWindow):
             FR.obj_FR.set_path(path)
             # получаем массив дескрипторов лиц
             fd_array = FR.obj_FR.return_img_vector()
+            self.labelStatus.setText('')
             if not fd_array:
-                self.label.setText('На изображении нет людей!')
+                self.labelStatus.setText('На изображении нет людей!')
                 return
             count = 0
             isFound = False
@@ -221,7 +225,7 @@ class FaceApp(QtWidgets.QMainWindow, gui.Ui_MainWindow):
                                                                         Qt.SmoothTransformation)
                     # Помещаем картинку в label для отображения на экране
                     self.label.setPixmap(pixmap)
-                    self.set_info_about_user(name, value)
+                    # self.set_info_about_user(name, value)
                     self.add_to_history(name)
                 else:
                     # Добавляем изображения нераспознанных людей в папку на диске
@@ -230,7 +234,7 @@ class FaceApp(QtWidgets.QMainWindow, gui.Ui_MainWindow):
                 self.progressBar.setValue(count)
                 if count == len(fd_array) and isFound:
                     return
-            self.label.setText('Совпадений не обнаружено!')
+            self.labelStatus.setText('Совпадений не обнаружено!')
             return 0
 
     def save_history_success(self):
@@ -254,17 +258,17 @@ class FaceApp(QtWidgets.QMainWindow, gui.Ui_MainWindow):
         if answer == QMessageBox.Yes:
             self.plainTextEdit.setPlainText('Все нераспознанные лица хранятся в папке unknown faces!\n')
 
-    def set_info_about_user(self, name, value):
-        if self.labelName.text().find(name) == -1:
-            if name != '' and self.labelName.text() == '':
-                self.labelName.setText(self.labelName.text() + name)
-            else:
-                self.labelName.setText(self.labelName.text() + ' & ' + name)
-
-            if str(value) != '' and self.labelEuclid.text() == '':
-                self.labelEuclid.setText(self.labelEuclid.text() + str(value))
-            else:
-                self.labelEuclid.setText(self.labelEuclid.text() + ' & ' + str(value))
+    # def set_info_about_user(self, name, value):
+    #     if self.labelName.text().find(name) == -1:
+    #         if name != '' and self.labelName.text() == '':
+    #             self.labelName.setText(self.labelName.text() + name)
+    #         else:
+    #             self.labelName.setText(self.labelName.text() + ' & ' + name)
+    #
+    #         if str(value) != '' and self.labelEuclid.text() == '':
+    #             self.labelEuclid.setText(self.labelEuclid.text() + str(value))
+    #         else:
+    #             self.labelEuclid.setText(self.labelEuclid.text() + ' & ' + str(value))
 
     def add_to_history(self, name):
         self.plainTextEdit.moveCursor(QTextCursor.End)

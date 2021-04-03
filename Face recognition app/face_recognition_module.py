@@ -48,6 +48,7 @@ def calc_euclid(face_descriptor1, face_descriptor2):
 class FaceRecognition(object):
 
     def __init__(self, path):
+        dlib.DLIB_USE_CUDA = True
         self.path = path
         # объект для детекции лиц
         self.detector = dlib.get_frontal_face_detector()
