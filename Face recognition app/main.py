@@ -96,7 +96,8 @@ class FaceApp(QtWidgets.QMainWindow, gui.Ui_MainWindow):
 
     def open_cam(self):
         """Открытие камеры для "заморозки" изображения"""
-        self.cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)  # video capture source camera (Here webcam of laptop)
+        # self.cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)  # video capture source camera (Here webcam of laptop)
+        self.cap = cv2.VideoCapture(0)
         self.reset_left_area()
         if self.cap is None or not self.cap.isOpened():
             self.labelStatus.setText('Веб-камера не обнаружена!')
@@ -278,7 +279,14 @@ class FaceApp(QtWidgets.QMainWindow, gui.Ui_MainWindow):
             self.plainTextEdit.moveCursor(QTextCursor.End)
             self.plainTextEdit.insertPlainText('[' + now.strftime("%H:%M") + ']: ' + name + '\n')
         else:
-            if strings[-2].find(name) == -1:
+            flag = False
+            for i in range(len(strings)):
+                # если в истории уже встречается этот человек,
+                # то повторно его не добавляем
+                if strings[i].find(name) != -1:
+                    flag = True
+                    break
+            if not flag:
                 self.plainTextEdit.insertPlainText('[' + now.strftime("%H:%M") + ']: ' + name + '\n')
 
     def load_img(self):
@@ -287,7 +295,7 @@ class FaceApp(QtWidgets.QMainWindow, gui.Ui_MainWindow):
         self.labelInfo.setStyleSheet('color: rgb(229, 61, 26)')
         self.loading_image = QFileDialog.getOpenFileName(self, 'Выбор картинки', '/home', "Image (*.png *.jpg)")[0]
         # Функции QPixmap.scaled() возвращают масштабированные копии pixmap
-        pixmap = QPixmap(self.loading_image).scaled(221, 161,
+        pixmap = QPixmap(self.loading_image).scaled(491, 351,
                                                     Qt.KeepAspectRatio,
                                                     Qt.SmoothTransformation)
         # Помещаем картинку в label для отображения на экране
