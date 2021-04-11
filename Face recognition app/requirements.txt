@@ -1,5 +1,9 @@
 opencv-python==4.5.1.48
-PyQt5==5.14.1
+PyQt5~=5.15
 imutils==0.5.4
 transliterate==1.10.2
 dlib==19.22.0
+scipy==1.6.2
+
+# для dlib нужен cmake. Установить его нужно именно через установщик VS, не отдельно:  https://medium.com/analytics-vidhya/how-to-install-dlib-library-for-python-in-windows-10-57348ba1117f
+
